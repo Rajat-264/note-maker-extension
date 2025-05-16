@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Note Maker Extension</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Authentication Section -->
+  <div id="auth-section" class="card">
+    <h2>🔐 Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <!-- Main Section -->
+  <div id="main-section" class="card" style="display: none;">
+    <h2>📝 Topics</h2>
+
+    <div class="topic-select-row">
+      <select id="topicList"></select>
+      <button id="refreshBtn" title="Refresh Topics">⟳</button>
+    </div>
+
+    <h3>➕ Create New Topic</h3>
+    <input type="text" id="newTopic" placeholder="Enter topic title" />
+    <button id="createTopicBtn">Create Topic</button>
+
+    <div id="topic-view">
+      <h3>📄 Topic Notes</h3>
+      <div id="notesList" class="notes-container"></div>
+    </div>
+
+    <button id="improveBtn" class="improve-button">✨ Improve with AI</button>
+
+    <!-- AI Comparison -->
+    <div id="aiCompareSection" style="display: none;">
+      <h3>⚡ AI Improvement Preview</h3>
+      <div class="ai-flex">
+        <div class="ai-column">
+          <h4>Original</h4>
+          <div id="originalContent" class="ai-box"></div>
+          <button id="keepOriginalBtn" class="secondary-button">Keep Original</button>
+        </div>
+        <div class="ai-column">
+          <h4>Improved</h4>
+          <div id="improvedContent" class="ai-box"></div>
+          <button id="keepImprovedBtn">Keep Improved</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

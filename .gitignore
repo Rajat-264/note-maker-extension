@@ -1,0 +1,9 @@
+# Build outputs
+dist/
+build/
+*.zip
+
+# OS & IDE files
+.DS_Store
+.vscode/
+.idea/

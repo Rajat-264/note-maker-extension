@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Note Maker Extension",
+  "description": "Select text and save directly to your topic.",
+  "version": "1.0",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "notifications",
+    "identity"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "commands": {
+    "copy_to_topic": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S"
+      },
+      "description": "Copy selected text to topic"
+    }
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon128.png"
+    }
+  }
+}
