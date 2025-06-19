@@ -1,4 +1,4 @@
-const API = 'http://localhost:5000/api';
+const API = 'https://note-maker-backend-ioqg.onrender.com/api';
 
 async function login(email, password) {
   const res = await fetch(`${API}/auth/login`, {
@@ -122,7 +122,7 @@ document.getElementById('improveBtn').onclick = async () => {
   const { selectedTopicId } = await chrome.storage.local.get('selectedTopicId');
 
   try {
-    const res = await fetch(`http://localhost:5002/improve/${selectedTopicId}`, {
+    const res = await fetch(`https://note-maker-ai-service.onrender.com/improve/${selectedTopicId}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     });

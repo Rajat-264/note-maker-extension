@@ -8,7 +8,7 @@ document.addEventListener('keydown', async (e) => {
 
     if (!topicId.selectedTopicId || !token.token) return;
 
-    const response = await fetch('http://localhost:5000/api/topics/' + topicId.selectedTopicId + '/notes', {
+    const response = await fetch('https://note-maker-backend-ioqg.onrender.com/api/topics/' + topicId.selectedTopicId + '/notes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
