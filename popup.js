@@ -1,4 +1,4 @@
-const API = 'https://note-maker-backend-ioqg.onrender.com/api';
+const API = 'https://note-maker-backend-ecxb.onrender.com/api';
 
 async function login(email, password) {
   const res = await fetch(`${API}/auth/login`, {

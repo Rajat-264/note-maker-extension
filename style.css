@@ -1,9 +1,10 @@
 body {
   font-family: 'Segoe UI', sans-serif;
-  padding: 16px;
+  padding-left: 10px;
+  padding-right: 10px;
   width: 320px;
   background: #f3f4f6;
-  margin: 0;
+  margin: 0 10px;
   color: #111827;
 }
 
@@ -16,7 +17,7 @@ h2, h3, h4 {
 input, select, button {
   display: block;
   margin-bottom: 10px;
-  width: 100%;
+  width: 90%;
   padding: 10px;
   margin: 15px;
   font-size: 14px;
