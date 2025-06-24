@@ -1,3 +1,6 @@
+// background.js
+const API = 'https://note-maker-backend-ecxb.onrender.com/api';
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed.");
 });
@@ -8,50 +11,58 @@ chrome.commands.onCommand.addListener((command) => {
       chrome.scripting.executeScript(
         {
           target: { tabId: tabs[0].id },
-          func: getSelectedText,
+          func: () => window.getSelection().toString().trim(),
         },
         async (results) => {
-          if (results && results[0] && results[0].result) {
-            const selectedText = results[0].result;
+          const selectedText = results[0]?.result;
+          if (!selectedText) return;
 
-            chrome.storage.local.get(["token", "selectedTopicId"], async (data) => {
-  if (!data.token || !data.selectedTopicId) return;
+          chrome.storage.local.get(["token", "selectedTopicId"], async (data) => {
+            if (!data.token || !data.selectedTopicId) return;
 
-  try {
-    const response = await fetch("https://note-maker-backend-ecxb.onrender.com/api/topics/" + data.selectedTopicId + "/notes", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${data.token}`,
-      },
-      body: JSON.stringify({
-        content: selectedText,
-      }),
-    });
+            try {
+              // Step 1: Get existing notes
+              const topicRes = await fetch(`${API}/topics/${data.selectedTopicId}`, {
+                headers: { Authorization: `Bearer ${data.token}` }
+              });
 
-    const result = await response.json();
-    if (response.ok) {
-      chrome.notifications.create({
-        type: "basic",
-        iconUrl: "icons/icon128.png",
-        title: "Note Added",
-        message: "Text successfully saved to the topic.",
-      });
-    } else {
-      console.error("Error:", result.message);
-    }
-  } catch (error) {
-    console.error("Request failed:", error);
-  }
-});
+              const topic = await topicRes.json();
+              const existingNotes = Array.isArray(topic.notes) ? topic.notes : [];
 
-          }
+              // Step 2: Append new note
+              const newNote = {
+                id: crypto.randomUUID(),
+                content: selectedText
+              };
+              const updatedNotes = [...existingNotes, newNote];
+
+              // Step 3: Save updated notes
+              const response = await fetch(`${API}/topics/${data.selectedTopicId}/updateNotes`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${data.token}`
+                },
+                body: JSON.stringify({ notes: updatedNotes })
+              });
+
+              const result = await response.json();
+              if (response.ok) {
+                chrome.notifications.create({
+                  type: "basic",
+                  iconUrl: "icons/icon128.png",
+                  title: "Note Added",
+                  message: "Text successfully saved to the topic."
+                });
+              } else {
+                console.error("Error:", result.message);
+              }
+            } catch (error) {
+              console.error("Request failed:", error);
+            }
+          });
         }
       );
     });
   }
 });
-
-function getSelectedText() {
-  return window.getSelection().toString();
-}

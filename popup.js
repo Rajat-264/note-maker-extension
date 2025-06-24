@@ -1,125 +1,162 @@
 const API = 'https://note-maker-backend-ecxb.onrender.com/api';
 
-async function login(email, password) {
-  const res = await fetch(`${API}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
-  const data = await res.json();
+document.addEventListener('DOMContentLoaded', () => {
+  checkSession();
+  setEventListeners();
+});
 
-  if (res.ok) {
-    const expirationTime = Date.now() + 7 * 24 * 60 * 60 * 1000; 
-    await chrome.storage.local.set({ token: data.token, tokenExpiration: expirationTime });
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('main-section').style.display = 'block';
-    fetchTopics();
-  } else {
-    alert(data.message);
+function setEventListeners() {
+  document.getElementById('loginBtn').onclick = handleLogin;
+  document.getElementById('createTopicBtn').onclick = createTopic;
+  document.getElementById('refreshBtn').onclick = fetchTopics;
+  document.getElementById('improveBtn').onclick = improveTopic;
+  document.getElementById('topicList').onchange = onTopicChange;
+}
+
+async function handleLogin() {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('password').value.trim();
+
+  if (!email || !pass) {
+    alert("Please enter email and password.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      const expirationTime = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      await chrome.storage.local.set({ token: data.token, tokenExpiration: expirationTime });
+      toggleAuth(true);
+      fetchTopics();
+    } else {
+      alert(data.message || 'Login failed.');
+    }
+  } catch (err) {
+    console.error('Login error:', err);
+    alert("Network error during login.");
   }
 }
 
 async function checkSession() {
   const { token, tokenExpiration } = await chrome.storage.local.get(['token', 'tokenExpiration']);
-  if (token && tokenExpiration && Date.now() < tokenExpiration) {
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('main-section').style.display = 'block';
+  const validSession = token && tokenExpiration && Date.now() < tokenExpiration;
+
+  toggleAuth(validSession);
+
+  if (validSession) {
     fetchTopics();
   } else {
-    document.getElementById('auth-section').style.display = 'block';
-    document.getElementById('main-section').style.display = 'none';
-    await chrome.storage.local.remove(['token', 'tokenExpiration']); // Clear expired session
+    await chrome.storage.local.remove(['token', 'tokenExpiration']);
   }
+}
+
+function toggleAuth(loggedIn) {
+  document.getElementById('auth-section').style.display = loggedIn ? 'none' : 'block';
+  document.getElementById('main-section').style.display = loggedIn ? 'block' : 'none';
 }
 
 async function fetchTopics() {
   const { token, selectedTopicId } = await chrome.storage.local.get(['token', 'selectedTopicId']);
-  const res = await fetch(`${API}/topics`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  const topics = await res.json();
 
-  const select = document.getElementById('topicList');
-  select.innerHTML = '';
+  try {
+    const res = await fetch(`${API}/topics`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-  topics.forEach(topic => {
-    const opt = document.createElement('option');
-    opt.value = topic._id;
-    opt.innerText = topic.title;
-    select.appendChild(opt);
-  });
+    const topics = await res.json();
 
-  if (topics.length > 0) {
-    const validSelected = topics.find(t => t._id === selectedTopicId);
-    const currentId = validSelected ? selectedTopicId : topics[0]._id;
-    select.value = currentId;
-    await chrome.storage.local.set({ selectedTopicId: currentId });
-    fetchNotesForTopic(currentId);
-  } else {
-    document.getElementById('notesList').innerHTML = '<p>No topics available.</p>';
+    const select = document.getElementById('topicList');
+    select.innerHTML = '';
+
+    topics.forEach(topic => {
+      const opt = document.createElement('option');
+      opt.value = topic._id;
+      opt.innerText = topic.title;
+      select.appendChild(opt);
+    });
+
+    if (topics.length > 0) {
+      const validSelected = topics.find(t => t._id === selectedTopicId);
+      const currentId = validSelected ? selectedTopicId : topics[0]._id;
+      select.value = currentId;
+      await chrome.storage.local.set({ selectedTopicId: currentId });
+      fetchNotesForTopic(currentId);
+    } else {
+      document.getElementById('notesList').innerHTML = '<p>No topics available.</p>';
+    }
+
+  } catch (err) {
+    console.error('Fetch topics error:', err);
+    alert("Failed to load topics.");
   }
 }
 
 async function fetchNotesForTopic(topicId) {
   const { token } = await chrome.storage.local.get('token');
-  const res = await fetch(`${API}/topics/${topicId}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  const topic = await res.json();
 
-  const notesDiv = document.getElementById('notesList');
-  notesDiv.innerHTML = '';
-
-  if (topic.notes && topic.notes.length > 0) {
-    topic.notes.forEach(note => {
-      const p = document.createElement('p');
-      p.textContent = note;
-      notesDiv.appendChild(p);
+  try {
+    const res = await fetch(`${API}/topics/${topicId}`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
-  } else {
-    notesDiv.innerHTML = '<p>No notes yet.</p>';
+
+    const topic = await res.json();
+    const notesDiv = document.getElementById('notesList');
+    notesDiv.innerHTML = '';
+
+    if (Array.isArray(topic.notes) && topic.notes.length > 0) {
+      topic.notes.forEach(note => {
+        const p = document.createElement('p');
+        p.textContent = note.content || '[Empty Note]';
+        notesDiv.appendChild(p);
+      });
+    } else {
+      notesDiv.innerHTML = '<p>No notes yet.</p>';
+    }
+  } catch (err) {
+    console.error('Fetch notes error:', err);
+    alert("Could not load notes.");
   }
 }
 
-document.addEventListener('DOMContentLoaded', checkSession);
-
-document.getElementById('topicList').onchange = async (e) => {
-  const topicId = e.target.value;
-  await chrome.storage.local.set({ selectedTopicId: topicId });
-  fetchNotesForTopic(topicId);
-};
-
-document.getElementById('loginBtn').onclick = () => {
-  const email = document.getElementById('email').value;
-  const pass = document.getElementById('password').value;
-  login(email, pass);
-};
-
-document.getElementById('createTopicBtn').onclick = async () => {
-  const title = document.getElementById('newTopic').value;
+async function createTopic() {
+  const title = document.getElementById('newTopic').value.trim();
   if (!title) return alert("Please enter a topic title.");
+
   const { token } = await chrome.storage.local.get('token');
 
-  const res = await fetch(`${API}/topics`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-    body: JSON.stringify({ title })
-  });
+  try {
+    const res = await fetch(`${API}/topics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ title })
+    });
 
-  if (res.ok) {
-    document.getElementById('newTopic').value = '';
-    fetchTopics();
-  } else {
-    const err = await res.json();
-    alert(err.message || 'Failed to create topic.');
+    if (res.ok) {
+      document.getElementById('newTopic').value = '';
+      fetchTopics();
+    } else {
+      const err = await res.json();
+      alert(err.message || 'Failed to create topic.');
+    }
+  } catch (err) {
+    console.error('Create topic error:', err);
+    alert("Network error during topic creation.");
   }
-};
+}
 
-document.getElementById('refreshBtn').onclick = fetchTopics;
-
-document.getElementById('improveBtn').onclick = async () => {
-  const { token } = await chrome.storage.local.get('token');
-  const { selectedTopicId } = await chrome.storage.local.get('selectedTopicId');
+async function improveTopic() {
+  const { token, selectedTopicId } = await chrome.storage.local.get(['token', 'selectedTopicId']);
 
   try {
     const res = await fetch(`https://note-maker-ai-service.onrender.com/improve/${selectedTopicId}`, {
@@ -131,14 +168,18 @@ document.getElementById('improveBtn').onclick = async () => {
 
     if (res.ok) {
       alert(data.message || 'Topic improved successfully!');
-      await fetchNotesForTopic(selectedTopicId); 
+      fetchNotesForTopic(selectedTopicId);
     } else {
       alert(data.message || 'AI improvement failed.');
     }
   } catch (err) {
-    console.error('Improvement error:', err);
-    alert('An error occurred while improving the notes.');
+    console.error('AI improvement error:', err);
+    alert('AI service failed.');
   }
-};
+}
 
-
+async function onTopicChange(e) {
+  const topicId = e.target.value;
+  await chrome.storage.local.set({ selectedTopicId: topicId });
+  fetchNotesForTopic(topicId);
+}
