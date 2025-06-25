@@ -167,8 +167,9 @@ async function improveTopic() {
     });
     const { originalNotes, improvedNotes, message } = await res.json();
     if (res.ok) {
-      document.getElementById('originalContent').textContent = originalNotes.join('\n\n');
-      document.getElementById('improvedContent').textContent = improvedNotes.join('\n\n');
+      document.getElementById('originalContent').textContent = originalNotes.map(n => typeof n === 'string' ? n : n.content).join('\n\n');
+      document.getElementById('improvedContent').textContent = improvedNotes.map(n => typeof n === 'string' ? n : n.content).join('\n\n');
+
       document.getElementById('aiCompareSection').style.display = 'block';
     } else alert(message || 'AI failed');
   } catch (err) { console.error(err); alert('Network error during AI'); }
@@ -177,7 +178,8 @@ async function improveTopic() {
 async function acceptChanges() {
   const id = document.getElementById('aiMode').value;
   const { token, selectedTopicId } = await chrome.storage.local.get(['token','selectedTopicId']);
-  const improved = document.getElementById('improvedContent').textContent.split('\n\n');
+  const improved = document.getElementById('improvedContent').textContent = improvedNotes.map(n => typeof n === 'string' ? n : n.content).join('\n\n');
+
   const notesArray = improved.map(txt => ({ id: crypto.randomUUID(), content: txt }));
   const res = await fetch(`${API}/topics/${selectedTopicId}/updateNotes`, {
     method:'PUT',
