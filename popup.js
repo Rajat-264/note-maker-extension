@@ -1,5 +1,7 @@
 const API = 'https://note-maker-backend-ecxb.onrender.com/api';
 
+let latestImprovedNotes = []; // Global for acceptChanges()
+
 document.addEventListener('DOMContentLoaded', () => {
   checkSession();
   setEventListeners();
@@ -165,35 +167,68 @@ async function improveTopic() {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     });
+
     const { originalNotes, improvedNotes, message } = await res.json();
+
     if (res.ok) {
-      document.getElementById('originalContent').textContent = originalNotes.map(n => typeof n === 'string' ? n : n.content).join('\n\n');
-      document.getElementById('improvedContent').textContent = improvedNotes.map(n => typeof n === 'string' ? n : n.content).join('\n\n');
+      latestImprovedNotes = improvedNotes;
+
+      document.getElementById('originalContent').textContent = originalNotes
+        .map(n => typeof n === 'string' ? n : n.content)
+        .join('\n\n');
+
+      document.getElementById('improvedContent').textContent = improvedNotes
+        .map(n => typeof n === 'string' ? n : n.content)
+        .join('\n\n');
 
       document.getElementById('aiCompareSection').style.display = 'block';
-    } else alert(message || 'AI failed');
-  } catch (err) { console.error(err); alert('Network error during AI'); }
+    } else {
+      alert(message || 'AI failed.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Network error during AI.');
+  }
 }
 
 async function acceptChanges() {
-  const id = document.getElementById('aiMode').value;
   const { token, selectedTopicId } = await chrome.storage.local.get(['token','selectedTopicId']);
-  const improved = document.getElementById('improvedContent').textContent = improvedNotes.map(n => typeof n === 'string' ? n : n.content).join('\n\n');
 
-  const notesArray = improved.map(txt => ({ id: crypto.randomUUID(), content: txt }));
-  const res = await fetch(`${API}/topics/${selectedTopicId}/updateNotes`, {
-    method:'PUT',
-    headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-    body: JSON.stringify({ notes: notesArray })
-  });
-  if (res.ok) fetchNotesForTopic(selectedTopicId);
-  document.getElementById('aiCompareSection').style.display = 'none';
+  const notesArray = latestImprovedNotes.map(note => {
+    if (typeof note === 'string') {
+      return { id: crypto.randomUUID(), content: note };
+    } else if (typeof note === 'object' && note.content) {
+      return { id: note.id || crypto.randomUUID(), content: note.content };
+    }
+    return null;
+  }).filter(Boolean);
+
+  try {
+    const res = await fetch(`${API}/topics/${selectedTopicId}/updateNotes`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ notes: notesArray })
+    });
+
+    if (res.ok) {
+      fetchNotesForTopic(selectedTopicId);
+      document.getElementById('aiCompareSection').style.display = 'none';
+    } else {
+      const err = await res.json();
+      alert(err.message || 'Failed to accept changes.');
+    }
+  } catch (err) {
+    console.error('Accept error:', err);
+    alert('Error saving improved notes.');
+  }
 }
 
 function rejectChanges() {
   document.getElementById('aiCompareSection').style.display = 'none';
 }
-
 
 async function onTopicChange(e) {
   const topicId = e.target.value;
