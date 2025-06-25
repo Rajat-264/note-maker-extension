@@ -35,22 +35,34 @@
 
     <button id="improveBtn" class="improve-button">✨ Improve with AI</button>
 
-    <!-- AI Comparison -->
-    <div id="aiCompareSection" style="display: none;">
-      <h3>⚡ AI Improvement Preview</h3>
-      <div class="ai-flex">
-        <div class="ai-column">
-          <h4>Original</h4>
-          <div id="originalContent" class="ai-box"></div>
-          <button id="keepOriginalBtn" class="secondary-button">Keep Original</button>
-        </div>
-        <div class="ai-column">
-          <h4>Improved</h4>
-          <div id="improvedContent" class="ai-box"></div>
-          <button id="keepImprovedBtn">Keep Improved</button>
-        </div>
-      </div>
+    <div class="ai-controls">
+  <select id="aiMode">
+    <option value="improve">✨ Improve</option>
+    <option value="summarize">📌 Summarize</option>
+    <option value="expand">📖 Expand</option>
+    <option value="formal">🧑‍💼 Formal</option>
+    <option value="flashcards">🗂️ Flashcards</option>
+    <option value="simplify">😄 Simplify</option>
+  </select>
+</div>
+
+<div id="aiCompareSection" style="display:none;">
+  <h3>⚡ AI Preview</h3>
+  <div class="ai-flex">
+    <div class="ai-column">
+      <h4>Original</h4>
+      <div id="originalContent" class="ai-box"></div>
     </div>
+    <div class="ai-column">
+      <h4>AI Output</h4>
+      <div id="improvedContent" class="ai-box"></div>
+    </div>
+  </div>
+  <div class="ai-actions">
+    <button id="acceptBtn" class="secondary-button">✅ Accept</button>
+    <button id="rejectBtn" class="secondary-button">❌ Reject</button>
+  </div>
+</div>
   </div>
 
   <script src="popup.js"></script>

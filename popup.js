@@ -9,8 +9,10 @@ function setEventListeners() {
   document.getElementById('loginBtn').onclick = handleLogin;
   document.getElementById('createTopicBtn').onclick = createTopic;
   document.getElementById('refreshBtn').onclick = fetchTopics;
-  document.getElementById('improveBtn').onclick = improveTopic;
   document.getElementById('topicList').onchange = onTopicChange;
+  document.getElementById('improveBtn').onclick = improveTopic;
+  document.getElementById('acceptBtn').onclick = acceptChanges;
+  document.getElementById('rejectBtn').onclick = rejectChanges;
 }
 
 async function handleLogin() {
@@ -156,27 +158,40 @@ async function createTopic() {
 }
 
 async function improveTopic() {
-  const { token, selectedTopicId } = await chrome.storage.local.get(['token', 'selectedTopicId']);
-
+  const { token, selectedTopicId } = await chrome.storage.local.get(['token','selectedTopicId']);
+  const mode = document.getElementById('aiMode').value;
   try {
-    const res = await fetch(`https://note-maker-ai-service.onrender.com/improve/${selectedTopicId}`, {
+    const res = await fetch(`https://note-maker-ai-service.onrender.com/improve/enhance/${selectedTopicId}?mode=${mode}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` }
     });
-
-    const data = await res.json();
-
+    const { originalNotes, improvedNotes, message } = await res.json();
     if (res.ok) {
-      alert(data.message || 'Topic improved successfully!');
-      fetchNotesForTopic(selectedTopicId);
-    } else {
-      alert(data.message || 'AI improvement failed.');
-    }
-  } catch (err) {
-    console.error('AI improvement error:', err);
-    alert('AI service failed.');
-  }
+      document.getElementById('originalContent').textContent = originalNotes.join('\n\n');
+      document.getElementById('improvedContent').textContent = improvedNotes.join('\n\n');
+      document.getElementById('aiCompareSection').style.display = 'block';
+    } else alert(message || 'AI failed');
+  } catch (err) { console.error(err); alert('Network error during AI'); }
 }
+
+async function acceptChanges() {
+  const id = document.getElementById('aiMode').value;
+  const { token, selectedTopicId } = await chrome.storage.local.get(['token','selectedTopicId']);
+  const improved = document.getElementById('improvedContent').textContent.split('\n\n');
+  const notesArray = improved.map(txt => ({ id: crypto.randomUUID(), content: txt }));
+  const res = await fetch(`${API}/topics/${selectedTopicId}/updateNotes`, {
+    method:'PUT',
+    headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+    body: JSON.stringify({ notes: notesArray })
+  });
+  if (res.ok) fetchNotesForTopic(selectedTopicId);
+  document.getElementById('aiCompareSection').style.display = 'none';
+}
+
+function rejectChanges() {
+  document.getElementById('aiCompareSection').style.display = 'none';
+}
+
 
 async function onTopicChange(e) {
   const topicId = e.target.value;
